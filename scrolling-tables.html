@@ -1,0 +1,157 @@
+<!--
+Scrolling Tables: 12-20
+
+How to use in Notion:
+1) Host this file where it can be served over HTTPS (GitHub Pages, CodePen, Vercel, Netlify, RawGit-like service, or create a GitHub Gist and use a HTML preview service).
+2) In Notion, add an "Embed" block and paste the public URL where this HTML is hosted.
+
+Notes:
+- Notion does not allow raw HTML pasted directly into a page; you must host the file and embed the hosted URL.
+- The component auto-scrolls vertically, pauses on hover, and has speed controls.
+-->
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>12–20 Tables — Live Scroller</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1220;--accent:#7dd3fc;--text:#e6eef8}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:760px;margin:18px auto;padding:16px}
+    .header{display:flex;align-items:center;gap:12px}
+    h1{font-size:18px;margin:0}
+    .controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:var(--text);padding:6px 10px;border-radius:8px;cursor:pointer}
+    .btn:active{transform:translateY(1px)}
+    .panel{margin-top:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03)}
+
+    /* scroller box */
+    .scroller{height:320px;overflow:hidden;border-radius:8px;background:var(--card);position:relative;padding:12px}
+    .list{display:flex;flex-direction:column;gap:10px}
+    .item{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border:1px solid rgba(255,255,255,0.02);}
+    .item h3{margin:0;font-size:14px}
+    .item p{margin:6px 0 0;font-family:monospace;background:transparent}
+
+    /* Make the loop smooth by duplicating the content and translating */
+    .list-wrap{position:absolute;left:12px;right:12px;top:12px}
+
+    /* small / responsive */
+    @media (max-width:520px){.wrap{padding:10px}.scroller{height:260px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <h1>Tables 12–20 — Live Scroller</h1>
+      <div class="controls">
+        <label style="font-size:13px">Speed</label>
+        <input id="speed" type="range" min="20" max="200" value="80" style="width:140px">
+        <button id="toggle" class="btn">Pause</button>
+        <button id="copy" class="btn">Copy Text</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="scroller" id="scroller" title="Hover to pause">
+        <div class="list-wrap" id="listWrap">
+          <div class="list" id="list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data: tables 12 to 20 in the "carry method" format (one example then a one-line table)
+    const tables = [
+      {title: '12 × 7', example: ['Units: 2 × 7 = 14 → write 4, carry 1', 'Tens: 1 × 7 = 7; 7 + 1 = 8', 'Answer = 84'], line: '12, 24, 36, 48, 60, 72, 84, 96, 108, 120'},
+      {title: '13 × 8', example: ['Units: 3 × 8 = 24 → write 4, carry 2', 'Tens: 1 × 8 = 8; 8 + 2 = 10', 'Answer = 104'], line: '13, 26, 39, 52, 65, 78, 91, 104, 117, 130'},
+      {title: '14 × 6', example: ['Units: 4 × 6 = 24 → write 4, carry 2', 'Tens: 1 × 6 = 6; 6 + 2 = 8', 'Answer = 84'], line: '14, 28, 42, 56, 70, 84, 98, 112, 126, 140'},
+      {title: '15 × 9', example: ['Units: 5 × 9 = 45 → write 5, carry 4', 'Tens: 1 × 9 = 9; 9 + 4 = 13', 'Answer = 135'], line: '15, 30, 45, 60, 75, 90, 105, 120, 135, 150'},
+      {title: '16 × 7', example: ['Units: 6 × 7 = 42 → write 2, carry 4', 'Tens: 1 × 7 = 7; 7 + 4 = 11', 'Answer = 112'], line: '16, 32, 48, 64, 80, 96, 112, 128, 144, 160'},
+      {title: '17 × 8', example: ['Units: 7 × 8 = 56 → write 6, carry 5', 'Tens: 1 × 8 = 8; 8 + 5 = 13', 'Answer = 136'], line: '17, 34, 51, 68, 85, 102, 119, 136, 153, 170'},
+      {title: '18 × 6', example: ['Units: 8 × 6 = 48 → write 8, carry 4', 'Tens: 1 × 6 = 6; 6 + 4 = 10', 'Answer = 108'], line: '18, 36, 54, 72, 90, 108, 126, 144, 162, 180'},
+      {title: '19 × 9', example: ['Units: 9 × 9 = 81 → write 1, carry 8', 'Tens: 1 × 9 = 9; 9 + 8 = 17', 'Answer = 171'], line: '19, 38, 57, 76, 95, 114, 133, 152, 171, 190'},
+      {title: '20 × 7', example: ['Units: 0 × 7 = 0 → write 0', 'Tens: 2 × 7 = 14', 'Answer = 140'], line: '20, 40, 60, 80, 100, 120, 140, 160, 180, 200'}
+    ];
+
+    const listEl = document.getElementById('list');
+
+    function buildList() {
+      listEl.innerHTML = '';
+      for (const t of tables) {
+        const item = document.createElement('div');
+        item.className = 'item';
+        const h = document.createElement('h3'); h.textContent = t.title; item.appendChild(h);
+        for (const ex of t.example) {
+          const p = document.createElement('p'); p.textContent = ex; item.appendChild(p);
+        }
+        const one = document.createElement('p'); one.style.marginTop = '8px'; one.textContent = '▶ ' + t.line; item.appendChild(one);
+        listEl.appendChild(item);
+      }
+    }
+
+    // create duplication so we can animate an infinite loop
+    function duplicate() {
+      const clone = listEl.cloneNode(true);
+      clone.id = 'list-clone';
+      document.getElementById('listWrap').appendChild(clone);
+    }
+
+    buildList(); duplicate();
+
+    // scrolling behavior
+    const listWrap = document.getElementById('listWrap');
+    const scroller = document.getElementById('scroller');
+    let speedInput = document.getElementById('speed');
+    let toggle = document.getElementById('toggle');
+    let copyBtn = document.getElementById('copy');
+
+    let paused = false;
+    let px = 0;
+
+    function getHeight() {
+      // height of original list
+      return document.getElementById('list').offsetHeight + 18; // gap padding
+    }
+
+    let last = performance.now();
+    function step(now){
+      if (paused) { last = now; requestAnimationFrame(step); return; }
+      const dt = now - last;
+      last = now;
+      const sp = Number(speedInput.value); // pixels/sec-ish
+      px += (sp * dt) / 1000;
+      const h = getHeight();
+      if (px >= h) px = px - h;
+      listWrap.style.transform = `translateY(${-px}px)`;
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+
+    // pause on hover
+    scroller.addEventListener('mouseenter', ()=> paused = true);
+    scroller.addEventListener('mouseleave', ()=> paused = false);
+
+    toggle.addEventListener('click', ()=>{
+      paused = !paused; toggle.textContent = paused? 'Play' : 'Pause';
+    });
+
+    copyBtn.addEventListener('click', ()=>{
+      // gather one-line table lines
+      const text = tables.map(t => `${t.title} → ${t.line}`).join('\n');
+      navigator.clipboard.writeText(text).then(()=>{
+        copyBtn.textContent = 'Copied'; setTimeout(()=>copyBtn.textContent='Copy Text',900);
+      }, ()=>{ copyBtn.textContent = 'Failed'; setTimeout(()=>copyBtn.textContent='Copy Text',900); });
+    });
+
+    // optional: allow arrow keys to speed up / slow down
+    window.addEventListener('keydown', (e)=>{
+      if (e.key === 'ArrowUp') speedInput.value = Math.min(200, Number(speedInput.value)+10);
+      if (e.key === 'ArrowDown') speedInput.value = Math.max(20, Number(speedInput.value)-10);
+    });
+  </script>
+</body>
+</html>
